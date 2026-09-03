@@ -14,12 +14,23 @@ export interface Product {
   imageHint?: string
 }
 
-export interface Project {
+export type ContentKind = 'update' | 'news' | 'article'
+
+export interface ContentItem {
   id: string
   slug: string
+  kind: ContentKind
   title: string
-  category: ProductCategory
-  client?: string
-  description: string
-  products: string[]
+  excerpt: string
+  image: string
+  imageAlt: string
+  publishedAt: string
+  body: string[]
+}
+
+export interface CertificateImage {
+  id: string
+  title: string
+  image: string
+  imageAlt: string
 }

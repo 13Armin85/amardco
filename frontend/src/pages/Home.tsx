@@ -1,9 +1,14 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowUpLeft,
   BookOpen,
   Building2,
+  CalendarDays,
   CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Database,
   FileText,
@@ -13,7 +18,6 @@ import {
   Map,
   MapPin,
   MessageCircle,
-  Newspaper,
   Phone,
   ReceiptText,
   ShieldCheck,
@@ -24,8 +28,9 @@ import SectionTitle from "../components/SectionTitle";
 import CTA from "../components/CTA";
 import { products } from "../data/products";
 import { company } from "../data/company";
+import { getContentList } from "../lib/api";
 import { useSEO } from "../hooks/useSEO";
-import type { ProductCategory } from "../types";
+import type { ContentItem, ProductCategory } from "../types";
 
 const urbanCategory: ProductCategory = "نرم‌افزار یکپارچه شهرسازی";
 const financeCategory: ProductCategory = "نرم‌افزار یکپارچه مالی و اداری";
@@ -46,26 +51,6 @@ const offerCards = [
     title: "مالی و اداری هوشمند",
     text: "حسابداری، بودجه، خزانه‌داری، چک، قراردادها، انبارداری و منابع انسانی در یک بستر.",
   },
-];
-
-const updates = [
-  "سامانه یکپارچه شهرسازی آمارد برای شهرداری‌ها",
-  "مدیریت الکترونیکی عوارض نوسازی و اصناف",
-  "اتصال فرآیندهای مالی، شهرسازی و درگاه‌های پرداخت",
-  "بهبود گردش پرونده‌ها با کارتابل‌های تخصصی",
-];
-
-const news = [
-  "نقش سامانه‌های هوشمند در کاهش مراجعات حضوری شهروندان",
-  "مدیریت درآمدهای شهری با گزارش‌های دقیق و قابل اتکا",
-  "یکپارچگی اطلاعات املاک، معابر و پرونده‌های شهرسازی",
-  "پرداخت الکترونیکی عوارض و پیگیری آنلاین درخواست‌ها",
-];
-
-const articles = [
-  "مشارکت شهروندی در شهر هوشمند؛ مؤلفه‌ها و راهکارها",
-  "چطور GIS تصمیم‌گیری شهری را دقیق‌تر می‌کند؟",
-  "مزیت سامانه‌های یکپارچه برای شهرداری‌های متوسط و بزرگ",
 ];
 
 const faqs = [
@@ -91,7 +76,94 @@ const faqs = [
   ],
 ];
 
+interface ContentShowcaseProps {
+  id: string;
+  variant: "updates" | "news";
+  items: ContentItem[];
+  loading: boolean;
+  error: string;
+  routePrefix: string;
+  badge: string;
+  title: string;
+  highlight: string;
+  description: string;
+  chip: string;
+}
+
+function ContentShowcase({
+  id,
+  variant,
+  items,
+  loading,
+  error,
+  routePrefix,
+  badge,
+  title,
+  highlight,
+  description,
+  chip,
+}: ContentShowcaseProps) {
+  const featured = items[0];
+  const sideItems = items.slice(1, 4);
+
+  return (
+    <section className={`section-pad content-showcase-section ${variant}`} id={id}>
+      <div className="container content-showcase">
+        <div className="showcase-head">
+          <SectionTitle
+            badge={badge}
+            title={title}
+            highlight={highlight}
+            description={description}
+          />
+        </div>
+
+        {loading && <div className="content-loading">در حال دریافت از سرور...</div>}
+        {error && <div className="content-loading error">{error}</div>}
+        {!loading && !error && featured && (
+          <div className="showcase-layout">
+            <Link className="showcase-feature" to={`/${routePrefix}/${featured.slug}`}>
+              <img src={featured.image} alt={featured.imageAlt} />
+              <div>
+                <span className="chip">{chip}</span>
+                <h3>{featured.title}</h3>
+                <p>{featured.excerpt}</p>
+                <time>
+                  <CalendarDays size={16} />
+                  {featured.publishedAt}
+                </time>
+              </div>
+            </Link>
+
+            <div className="showcase-side-list">
+              {sideItems.map((item, index) => (
+                <Link to={`/${routePrefix}/${item.slug}`} key={item.id}>
+                  <span>{String(index + 2).padStart(2, "0")}</span>
+                  <img src={item.image} alt={item.imageAlt} />
+                  <div>
+                    <h3>{item.title}</h3>
+                    <time>{item.publishedAt}</time>
+                  </div>
+                  <ArrowUpLeft size={17} />
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [latestItems, setLatestItems] = useState<ContentItem[]>([]);
+  const [newsItems, setNewsItems] = useState<ContentItem[]>([]);
+  const [articleItems, setArticleItems] = useState<ContentItem[]>([]);
+  const [activeArticleIndex, setActiveArticleIndex] = useState(0);
+  const [contentLoading, setContentLoading] = useState(true);
+  const [contentError, setContentError] = useState("");
+
   useSEO(
     "تحلیلگران آمارد نوین | تحول دیجیتال در مدیریت شهری",
     company.description,
@@ -102,6 +174,56 @@ export default function Home() {
   const financeProducts = products
     .filter((product) => product.category === financeCategory)
     .slice(0, 4);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadContent() {
+      try {
+        setContentLoading(true);
+        setContentError("");
+        const [latest, news, articles] = await Promise.all([
+          getContentList("update"),
+          getContentList("news"),
+          getContentList("article"),
+        ]);
+
+        if (!ignore) {
+          setLatestItems(latest);
+          setNewsItems(news);
+          setArticleItems(articles);
+        }
+      } catch {
+        if (!ignore) {
+          setContentError("ارتباط با سرور برقرار نشد.");
+        }
+      } finally {
+        if (!ignore) {
+          setContentLoading(false);
+        }
+      }
+    }
+
+    loadContent();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (activeArticleIndex >= articleItems.length) {
+      setActiveArticleIndex(0);
+    }
+  }, [activeArticleIndex, articleItems.length]);
+
+  const activeArticle = articleItems[activeArticleIndex];
+  const showPreviousArticle = () => {
+    setActiveArticleIndex(current => articleItems.length ? (current - 1 + articleItems.length) % articleItems.length : 0);
+  };
+  const showNextArticle = () => {
+    setActiveArticleIndex(current => articleItems.length ? (current + 1) % articleItems.length : 0);
+  };
 
   return (
     <>
@@ -199,41 +321,19 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section-pad landing-split-section">
-        <div className="container landing-split">
-          <div>
-            <SectionTitle
-              badge="تازه‌های آمارد"
-              title="آخرین‌های"
-              highlight="آمارد"
-              description="مروری سریع بر تمرکزهای محصولی و اجرایی آمارد در مسیر هوشمندسازی مدیریت شهری."
-            />
-            <div className="news-list">
-              {updates.map((item, index) => (
-                <Link to="/products" key={item}>
-                  <span>{index + 1}</span>
-                  {item}
-                </Link>
-              ))}
-            </div>
-          </div>
-          <article className="featured-news-card">
-            <img
-              src="/smart-city-hero.png"
-              alt="سامانه یکپارچه شهرسازی آمارد"
-            />
-            <span className="chip">محصول شاخص</span>
-            <h3>سامانه یکپارچه شهرسازی آمارد</h3>
-            <p>
-              پوشش فرآیندهای نوسازی، درآمد، اصناف، املاک، کمیسیون‌ها و GIS برای
-              شهرداری‌ها.
-            </p>
-            <Link to="/products/article-77">
-              مشاهده جزئیات <ArrowUpLeft size={17} />
-            </Link>
-          </article>
-        </div>
-      </section>
+      <ContentShowcase
+        id="latest-updates"
+        variant="updates"
+        items={latestItems}
+        loading={contentLoading}
+        error={contentError}
+        routePrefix="updates"
+        badge="تازه‌های آمارِد"
+        title="آخرین‌های"
+        highlight="آمارِد"
+        description="مروری سریع بر تمرکزهای محصولی و اجرایی آمارِد در مسیر هوشمندسازی مدیریت شهری."
+        chip="تازه‌ترین آمارِد"
+      />
 
       <section className="section-pad compact-top">
         <div className="container">
@@ -272,7 +372,7 @@ export default function Home() {
       </section>
 
       <section className="section-pad contact-landing-section">
-        <div className="container contact-landing-grid">
+        <div className="container contact-landing-stack">
           <div>
             <SectionTitle
               badge="ارتباط"
@@ -294,56 +394,46 @@ export default function Home() {
                 <b>{company.address}</b>
               </div>
             </div>
+            <aside className="availability-banner">
+              <div className="availability-icon">
+                <Clock3 />
+              </div>
+              <div className="availability-copy">
+                <span>ما در دسترس هستیم</span>
+                <h3>ساعت پاسخگویی</h3>
+              </div>
+              <div className="availability-hours">
+                <p>
+                  <b>شنبه تا چهارشنبه:</b> ۷:۳۰ تا ۱۶
+                </p>
+                <p>
+                  <b>پنجشنبه:</b> ۷:۳۰ تا ۱۲
+                </p>
+              </div>
+              <Link to="/contact">
+                تماس با ما <ArrowUpLeft size={17} />
+              </Link>
+            </aside>
           </div>
-          <aside className="availability-card">
-            <Clock3 />
-            <span>ما در دسترس هستیم</span>
-            <h3>ساعت پاسخگویی</h3>
-            <p>
-              <b>شنبه تا چهارشنبه:</b> ۷:۳۰ تا ۱۶
-            </p>
-            <p>
-              <b>پنجشنبه:</b> ۷:۳۰ تا ۱۲
-            </p>
-            <Link to="/contact">
-              تماس با ما <ArrowUpLeft size={17} />
-            </Link>
-          </aside>
         </div>
       </section>
 
-      <section className="section-pad landing-split-section compact-top">
-        <div className="container landing-split">
-          <div>
-            <SectionTitle
-              badge="اخبار"
-              title="آخرین خبرهای"
-              highlight="سایت"
-              description="مطالب و خبرهایی درباره تحول دیجیتال، شهر هوشمند و سامانه‌های سازمانی."
-            />
-            <div className="news-list">
-              {news.map((item, index) => (
-                <Link to="/about" key={item}>
-                  <span>{index + 1}</span>
-                  {item}
-                </Link>
-              ))}
-            </div>
-          </div>
-          <article className="stat-card">
-            <Newspaper />
-            <strong>٪۹</strong>
-            <h3>بهبود فرآیندهای شهری با داده دقیق</h3>
-            <p>
-              نمونه‌ای از تحلیل‌های قابل ارائه در داشبوردهای مدیریتی و گزارش‌های
-              سازمانی.
-            </p>
-          </article>
-        </div>
-      </section>
+      <ContentShowcase
+        id="latest-news"
+        variant="news"
+        items={newsItems}
+        loading={contentLoading}
+        error={contentError}
+        routePrefix="news"
+        badge="اخبار"
+        title="آخرین خبرهای"
+        highlight="سایت"
+        description="مطالب و خبرهایی درباره تحول دیجیتال، شهر هوشمند و سامانه‌های سازمانی."
+        chip="آخرین خبر"
+      />
 
-      <section className="section-pad compact-top">
-        <div className="container article-grid-wrap">
+      <section className="section-pad compact-top article-slider-section" id="articles">
+        <div className="container article-slider-wrap">
           <SectionTitle
             badge="مقالات"
             title="برترین"
@@ -351,18 +441,49 @@ export default function Home() {
             center
             description="مطالب منتخب برای آشنایی با مسیر شهر هوشمند، مدیریت داده و یکپارچگی نرم‌افزارهای شهری."
           />
-          <div className="article-grid">
-            {articles.map((item, index) => (
-              <article className="article-card" key={item}>
-                <BookOpen />
-                <span>مقاله {index + 1}</span>
-                <h3>{item}</h3>
-                <Link to="/about">
-                  مطالعه بیشتر <ArrowUpLeft size={17} />
-                </Link>
-              </article>
-            ))}
-          </div>
+          {contentLoading && <div className="content-loading">در حال دریافت از سرور...</div>}
+          {contentError && <div className="content-loading error">{contentError}</div>}
+          {!contentLoading && !contentError && activeArticle && (
+            <div className="article-slider">
+              <button className="slider-btn" type="button" onClick={showPreviousArticle} aria-label="مقاله قبلی">
+                <ChevronRight />
+              </button>
+              <Link className="article-slide" to={`/articles/${activeArticle.slug}`}>
+                <img src={activeArticle.image} alt={activeArticle.imageAlt} />
+                <div>
+                  <span className="chip">مقاله منتخب</span>
+                  <h3>{activeArticle.title}</h3>
+                  <p>{activeArticle.excerpt}</p>
+                  <time>
+                    <CalendarDays size={16} />
+                    {activeArticle.publishedAt}
+                  </time>
+                  <div className="card-read-more">
+                    <BookOpen size={17} />
+                    مطالعه کامل <ArrowUpLeft size={17} />
+                  </div>
+                </div>
+              </Link>
+              <button className="slider-btn" type="button" onClick={showNextArticle} aria-label="مقاله بعدی">
+                <ChevronLeft />
+              </button>
+
+              <div className="article-slider-tabs">
+                {articleItems.map((item, index) => (
+                  <button
+                    className={index === activeArticleIndex ? "active" : ""}
+                    type="button"
+                    key={item.id}
+                    onClick={() => setActiveArticleIndex(index)}
+                    aria-label={`نمایش مقاله ${index + 1}`}
+                  >
+                    <img src={item.image} alt="" />
+                    <span>{item.title}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -375,13 +496,23 @@ export default function Home() {
             center
           />
           <div className="faq-grid">
-            {faqs.map(([question, answer]) => (
-              <details key={question}>
-                <summary>
-                  <HelpCircle /> {question}
-                </summary>
-                <p>{answer}</p>
-              </details>
+            {faqs.map(([question, answer], index) => (
+              <article className={`faq-item ${openFaqIndex === index ? "open" : ""}`} key={question}>
+                <button
+                  className="faq-question"
+                  type="button"
+                  aria-expanded={openFaqIndex === index}
+                  aria-controls={`faq-answer-${index}`}
+                  onClick={() => setOpenFaqIndex(current => current === index ? null : index)}
+                >
+                  <HelpCircle /> {question} <ChevronDown />
+                </button>
+                {openFaqIndex === index && (
+                  <p className="faq-answer" id={`faq-answer-${index}`}>
+                    {answer}
+                  </p>
+                )}
+              </article>
             ))}
           </div>
         </div>

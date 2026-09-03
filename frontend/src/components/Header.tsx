@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, NavLink } from 'react-router-dom'
 import { ChevronDown, Menu, Moon, Phone, Sun, X } from 'lucide-react'
 import Logo from './Logo'
@@ -8,7 +9,7 @@ import type { ProductCategory } from '../types'
 const links = [
   ['/', 'خانه'],
   ['/about', 'درباره ما'],
-  ['/projects', 'پروژه‌ها'],
+  ['/certificates', 'گواهینامه‌ها و مدارک'],
   ['/contact', 'تماس با ما'],
 ]
 
@@ -38,6 +39,21 @@ export default function Header() {
     document.documentElement.dataset.theme = theme
     localStorage.setItem('amard-theme', theme)
   }, [theme])
+
+  useEffect(() => {
+    if (!open) return
+
+    const previousBodyOverflow = document.body.style.overflow
+    const previousHtmlOverflow = document.documentElement.style.overflow
+
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow
+      document.documentElement.style.overflow = previousHtmlOverflow
+    }
+  }, [open])
 
   const toggleTheme = () => setTheme(current => current === 'dark' ? 'light' : 'dark')
 
@@ -74,7 +90,7 @@ export default function Header() {
               </div>
             </div>
           </div>
-          <NavLink to="/projects" className={({ isActive }) => isActive ? 'active' : ''}>پروژه‌ها</NavLink>
+          <NavLink to="/certificates" className={({ isActive }) => isActive ? 'active' : ''}>گواهینامه‌ها و مدارک</NavLink>
           <NavLink to="/contact" className={({ isActive }) => isActive ? 'active' : ''}>تماس با ما</NavLink>
         </nav>
 
@@ -82,31 +98,34 @@ export default function Header() {
         <button className="theme-toggle" onClick={toggleTheme} aria-label="تغییر حالت روشن و تیره" title="تغییر حالت روشن و تیره">
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
-        <button className="menu-btn" onClick={() => setOpen(true)} aria-label="باز کردن منو"><Menu /></button>
+        <button className="menu-btn" type="button" onClick={() => setOpen(true)} aria-label="باز کردن منو"><Menu /></button>
       </div>
 
-      {open && (
-        <div className="mobile-menu">
-          <div className="mobile-menu-head">
-            <Logo />
-            <div>
-              <button className="theme-toggle" onClick={toggleTheme} aria-label="تغییر حالت روشن و تیره">
-                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-              <button onClick={() => setOpen(false)} aria-label="بستن منو"><X /></button>
+      {open && createPortal(
+        <div className="mobile-menu-backdrop" onClick={() => setOpen(false)}>
+          <div className="mobile-menu open" onClick={(event) => event.stopPropagation()}>
+            <div className="mobile-menu-head">
+              <Logo />
+              <div>
+                <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label="تغییر حالت روشن و تیره">
+                  {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+                <button type="button" onClick={() => setOpen(false)} aria-label="بستن منو"><X /></button>
+              </div>
             </div>
+            <nav>
+              {links.map(([to, label]) => <NavLink onClick={() => setOpen(false)} key={to} to={to}>{label}</NavLink>)}
+              <NavLink onClick={() => setOpen(false)} to="/products">همه محصولات</NavLink>
+              {groupedProducts.map(({ group, items }) => (
+                <section className="mobile-products" key={group}>
+                  <span>{group}</span>
+                  {items.map(item => <NavLink onClick={() => setOpen(false)} key={item.id} to={`/products/${item.slug}`}>{item.title}</NavLink>)}
+                </section>
+              ))}
+            </nav>
           </div>
-          <nav>
-            {links.map(([to, label]) => <NavLink onClick={() => setOpen(false)} key={to} to={to}>{label}</NavLink>)}
-            <NavLink onClick={() => setOpen(false)} to="/products">همه محصولات</NavLink>
-            {groupedProducts.map(({ group, items }) => (
-              <section className="mobile-products" key={group}>
-                <span>{group}</span>
-                {items.map(item => <NavLink onClick={() => setOpen(false)} key={item.id} to={`/products/${item.slug}`}>{item.title}</NavLink>)}
-              </section>
-            ))}
-          </nav>
         </div>
+        , document.body,
       )}
     </header>
   )

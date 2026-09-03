@@ -7,16 +7,23 @@ import Home from './pages/Home'
 import About from './pages/About'
 import Products from './pages/Products'
 import ProductDetail from './pages/ProductDetail'
-import Projects from './pages/Projects'
-import ProjectDetail from './pages/ProjectDetail'
+import Certificates from './pages/Certificates'
 import Contact from './pages/Contact'
+import ContentDetail from './pages/ContentDetail'
 import NotFound from './pages/NotFound'
 
 function ScrollToTop() {
-  const { pathname } = useLocation()
+  const { pathname, hash } = useLocation()
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' })
-  }, [pathname])
+    if (hash) {
+      window.requestAnimationFrame(() => {
+        document.querySelector(hash)?.scrollIntoView({ behavior: 'auto', block: 'start' })
+      })
+      return
+    }
+
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }, [pathname, hash])
   return null
 }
 
@@ -32,8 +39,10 @@ export default function App() {
           <Route path="/about" element={<About />} />
           <Route path="/products" element={<Products />} />
           <Route path="/products/:slug" element={<ProductDetail />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/projects/:slug" element={<ProjectDetail />} />
+          <Route path="/certificates" element={<Certificates />} />
+          <Route path="/updates/:slug" element={<ContentDetail kind="update" />} />
+          <Route path="/news/:slug" element={<ContentDetail kind="news" />} />
+          <Route path="/articles/:slug" element={<ContentDetail kind="article" />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
