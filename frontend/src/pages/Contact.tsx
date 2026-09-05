@@ -1,17 +1,68 @@
+import { useEffect, useMemo, useState } from 'react'
 import { Mail, MapPin, Navigation, Phone } from 'lucide-react'
 import SectionTitle from '../components/SectionTitle'
-import { company } from '../data/company'
+import { getCompany } from '../lib/api'
 import { useSEO } from '../hooks/useSEO'
-
-const mapQuery = encodeURIComponent(company.address)
-const mapEmbedUrl = `https://maps.google.com/maps?q=${mapQuery}&output=embed`
-const mapLinkUrl = `https://www.google.com/maps/search/?api=1&query=${mapQuery}`
+import type { Company } from '../types'
 
 export default function Contact() {
+  const [company, setCompany] = useState<Company | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
   useSEO(
     'تماس با آمارد | تلفن، ایمیل، آدرس و نقشه',
     'اطلاعات تماس شرکت تحلیلگران آمارد نوین شامل شماره تلفن، ایمیل، آدرس و موقعیت روی نقشه.',
   )
+
+  useEffect(() => {
+    let ignore = false
+
+    async function loadCompany() {
+      try {
+        setLoading(true)
+        setError('')
+        const result = await getCompany()
+
+        if (!ignore) {
+          setCompany(result)
+        }
+      } catch {
+        if (!ignore) {
+          setCompany(null)
+          setError('اطلاعات تماس از سرور دریافت نشد.')
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadCompany()
+
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  const mapUrls = useMemo(() => {
+    if (!company) return null
+
+    const mapQuery = encodeURIComponent(company.address)
+    return {
+      embed: `https://maps.google.com/maps?q=${mapQuery}&output=embed`,
+      link: `https://www.google.com/maps/search/?api=1&query=${mapQuery}`,
+    }
+  }, [company])
+
+  if (loading) {
+    return <div className="container page-space">در حال دریافت از سرور...</div>
+  }
+
+  if (!company || !mapUrls) {
+    return <div className="container page-space">{error || 'اطلاعات تماس یافت نشد.'}</div>
+  }
 
   return (
     <>
@@ -38,11 +89,11 @@ export default function Contact() {
           <div className="contact-map-shell">
             <iframe
               title="موقعیت شرکت تحلیلگران آمارد نوین روی نقشه"
-              src={mapEmbedUrl}
+              src={mapUrls.embed}
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
             />
-            <a href={mapLinkUrl} target="_blank" rel="noreferrer">
+            <a href={mapUrls.link} target="_blank" rel="noreferrer">
               <Navigation size={17} />
               باز کردن در نقشه
             </a>

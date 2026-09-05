@@ -26,11 +26,9 @@ import {
 import { motion } from "framer-motion";
 import SectionTitle from "../components/SectionTitle";
 import CTA from "../components/CTA";
-import { products } from "../data/products";
-import { company } from "../data/company";
-import { getContentList } from "../lib/api";
+import { getCompany, getContentList, getProducts } from "../lib/api";
 import { useSEO } from "../hooks/useSEO";
-import type { ContentItem, ProductCategory } from "../types";
+import type { Company, ContentItem, Product, ProductCategory } from "../types";
 
 const urbanCategory: ProductCategory = "نرم‌افزار یکپارچه شهرسازی";
 const financeCategory: ProductCategory = "نرم‌افزار یکپارچه مالی و اداری";
@@ -157,16 +155,19 @@ function ContentShowcase({
 
 export default function Home() {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const [latestItems, setLatestItems] = useState<ContentItem[]>([]);
   const [newsItems, setNewsItems] = useState<ContentItem[]>([]);
   const [articleItems, setArticleItems] = useState<ContentItem[]>([]);
   const [activeArticleIndex, setActiveArticleIndex] = useState(0);
   const [contentLoading, setContentLoading] = useState(true);
   const [contentError, setContentError] = useState("");
+  const seoDescription = company?.description || "طراحی، تولید و پشتیبانی راهکارهای نرم‌افزاری تخصصی در حوزه شهرسازی، مالی و اداری.";
 
   useSEO(
     "تحلیلگران آمارد نوین | تحول دیجیتال در مدیریت شهری",
-    company.description,
+    seoDescription,
   );
   const urbanProducts = products
     .filter((product) => product.category === urbanCategory)
@@ -182,16 +183,20 @@ export default function Home() {
       try {
         setContentLoading(true);
         setContentError("");
-        const [latest, news, articles] = await Promise.all([
+        const [latest, news, articles, productList, companyInfo] = await Promise.all([
           getContentList("update"),
           getContentList("news"),
           getContentList("article"),
+          getProducts(),
+          getCompany(),
         ]);
 
         if (!ignore) {
           setLatestItems(latest);
           setNewsItems(news);
           setArticleItems(articles);
+          setProducts(productList);
+          setCompany(companyInfo);
         }
       } catch {
         if (!ignore) {
@@ -380,20 +385,24 @@ export default function Home() {
               highlight="ارتباط باشید"
               description="برای دریافت مشاوره، معرفی محصول یا شروع همکاری، از مسیرهای زیر با ما تماس بگیرید."
             />
-            <div className="contact-mini-grid">
-              <a href={`mailto:${company.email}`}>
-                <Mail /> <span>ایمیل</span>
-                <b>{company.email}</b>
-              </a>
-              <a href={`tel:${company.phones[0]}`}>
-                <Phone /> <span>شماره تماس</span>
-                <b>{company.phones.join(" - ")}</b>
-              </a>
-              <div>
-                <MapPin /> <span>آدرس</span>
-                <b>{company.address}</b>
+            {company ? (
+              <div className="contact-mini-grid">
+                <a href={`mailto:${company.email}`}>
+                  <Mail /> <span>ایمیل</span>
+                  <b>{company.email}</b>
+                </a>
+                <a href={`tel:${company.phones[0]}`}>
+                  <Phone /> <span>شماره تماس</span>
+                  <b>{company.phones.join(" - ")}</b>
+                </a>
+                <div>
+                  <MapPin /> <span>آدرس</span>
+                  <b>{company.address}</b>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="content-loading">در حال دریافت اطلاعات تماس از سرور...</div>
+            )}
             <aside className="availability-banner">
               <div className="availability-icon">
                 <Clock3 />

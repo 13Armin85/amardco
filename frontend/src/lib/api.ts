@@ -1,4 +1,4 @@
-import type { CertificateImage, ContentItem, ContentKind } from '../types'
+import type { CertificateImage, Company, ContentItem, ContentKind, Product, ProductCategory } from '../types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (
   import.meta.env.DEV ? 'http://127.0.0.1:4173/api' : '/api'
@@ -26,4 +26,20 @@ export function getContentItem(kind: ContentKind, slug: string) {
 
 export function getCertificates() {
   return request<{ data: CertificateImage[] }>('/certificates').then(result => result.data)
+}
+
+export function getCompany() {
+  return request<{ data: Company }>('/company').then(result => result.data)
+}
+
+export function getProductGroups() {
+  return request<{ data: ProductCategory[] }>('/product-groups').then(result => result.data)
+}
+
+export function getProducts() {
+  return request<{ data: Product[] }>('/products').then(result => result.data)
+}
+
+export function getProduct(slug: string) {
+  return request<{ data: Product }>(`/products/${slug}`).then(result => result.data)
 }

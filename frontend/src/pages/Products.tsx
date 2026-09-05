@@ -1,29 +1,69 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import SectionTitle from "../components/SectionTitle";
 import ProductCard from "../components/ProductCard";
 import CTA from "../components/CTA";
-import { products, productGroups } from "../data/products";
+import { getProductGroups, getProducts } from "../lib/api";
 import { useSEO } from "../hooks/useSEO";
-import type { ProductCategory } from "../types";
-
-const defaultGroup: ProductCategory = "نرم‌افزار یکپارچه شهرسازی";
+import type { Product, ProductCategory } from "../types";
 
 export default function Products() {
   const [params] = useSearchParams();
   const requested = params.get("category") as ProductCategory | null;
-  const initial =
-    requested && productGroups.includes(requested) ? requested : defaultGroup;
-  const [filter, setFilter] = useState<ProductCategory>(initial);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productGroups, setProductGroups] = useState<ProductCategory[]>([]);
+  const [filter, setFilter] = useState<ProductCategory | "">("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const list = useMemo(
     () => products.filter((product) => product.category === filter),
-    [filter],
+    [filter, products],
   );
 
   useSEO(
     "محصولات آمارد | راهکارهای شهرسازی، مالی و اداری",
     "محصولات نرم‌افزاری تحلیلگران آمارد نوین در حوزه شهرسازی، مالی و اداری.",
   );
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadProducts() {
+      try {
+        setLoading(true);
+        setError("");
+        const [groups, productList] = await Promise.all([
+          getProductGroups(),
+          getProducts(),
+        ]);
+
+        if (!ignore) {
+          setProductGroups(groups);
+          setProducts(productList);
+        }
+      } catch {
+        if (!ignore) {
+          setError("محصولات از سرور دریافت نشد.");
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadProducts();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!productGroups.length) return;
+
+    setFilter(requested && productGroups.includes(requested) ? requested : productGroups[0]);
+  }, [productGroups, requested]);
 
   return (
     <>
@@ -54,6 +94,8 @@ export default function Products() {
               </button>
             ))}
           </div>
+          {loading && <div className="content-loading">در حال دریافت از سرور...</div>}
+          {error && <div className="content-loading error">{error}</div>}
           <div className="products-grid">
             {list.map((product) => (
               <ProductCard key={product.id} product={product} />

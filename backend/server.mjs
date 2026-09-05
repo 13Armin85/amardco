@@ -3,7 +3,16 @@ import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { articleItems, certificateImages, contentItems, latestItems, newsItems } from './data.mjs'
+import {
+  articleItems,
+  certificateImages,
+  company,
+  contentItems,
+  latestItems,
+  newsItems,
+  productGroups,
+  products,
+} from './data.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, '..')
@@ -62,8 +71,27 @@ async function handleApi(req, res, url) {
         '/api/articles',
         '/api/articles/:slug',
         '/api/certificates',
+        '/api/company',
+        '/api/product-groups',
+        '/api/products',
+        '/api/products/:slug',
       ],
     })
+  }
+
+  if (req.method === 'GET' && resource === 'company') {
+    return sendJson(res, 200, { data: company })
+  }
+
+  if (req.method === 'GET' && resource === 'product-groups') {
+    return sendJson(res, 200, { data: productGroups })
+  }
+
+  if (req.method === 'GET' && resource === 'products') {
+    const item = slug ? findBySlug(products, slug) : null
+    return slug
+      ? sendJson(res, item ? 200 : 404, item ? { data: item } : { message: 'Product not found' })
+      : sendJson(res, 200, { data: products })
   }
 
   if (req.method === 'GET' && resource === 'content') {

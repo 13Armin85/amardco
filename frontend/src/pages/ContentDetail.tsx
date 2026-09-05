@@ -19,8 +19,9 @@ export default function ContentDetail({ kind }: ContentDetailProps) {
   const [error, setError] = useState('')
 
   useSEO(
-    item ? `${item.title} | آمارِد` : `${label} | آمارِد`,
-    item?.excerpt || `جزئیات ${label} آمارِد`,
+    item ? item.seoTitle || `${item.title} | آمارِد` : `${label} | آمارِد`,
+    item?.seoDescription || item?.excerpt || `جزئیات ${label} آمارِد`,
+    item?.keywords,
   )
 
   useEffect(() => {

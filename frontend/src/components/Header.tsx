@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom'
 import { Link, NavLink } from 'react-router-dom'
 import { ChevronDown, Menu, Moon, Phone, Sun, X } from 'lucide-react'
 import Logo from './Logo'
-import { products, productGroups } from '../data/products'
-import type { ProductCategory } from '../types'
+import { getCompany, getProductGroups, getProducts } from '../lib/api'
+import type { Company, Product, ProductCategory } from '../types'
 
 const links = [
   ['/', 'خانه'],
@@ -16,6 +16,9 @@ const links = [
 export default function Header() {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [products, setProducts] = useState<Product[]>([])
+  const [productGroups, setProductGroups] = useState<ProductCategory[]>([])
+  const [company, setCompany] = useState<Company | null>(null)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     if (typeof window === 'undefined') return 'dark'
     return localStorage.getItem('amard-theme') === 'light' ? 'light' : 'dark'
@@ -26,6 +29,38 @@ export default function Header() {
       group,
       items: products.filter(product => product.category === group),
     }))
+  }, [productGroups, products])
+
+  useEffect(() => {
+    let ignore = false
+
+    async function loadNavigationData() {
+      try {
+        const [groups, productList, companyInfo] = await Promise.all([
+          getProductGroups(),
+          getProducts(),
+          getCompany(),
+        ])
+
+        if (!ignore) {
+          setProductGroups(groups)
+          setProducts(productList)
+          setCompany(companyInfo)
+        }
+      } catch {
+        if (!ignore) {
+          setProductGroups([])
+          setProducts([])
+          setCompany(null)
+        }
+      }
+    }
+
+    loadNavigationData()
+
+    return () => {
+      ignore = true
+    }
   }, [])
 
   useEffect(() => {
@@ -94,7 +129,11 @@ export default function Header() {
           <NavLink to="/contact" className={({ isActive }) => isActive ? 'active' : ''}>تماس با ما</NavLink>
         </nav>
 
-        <a href="tel:01143270941" className="header-phone"><Phone size={16} /> 011-43270941</a>
+        {company && (
+          <a href={`tel:${company.phones[0]}`} className="header-phone">
+            <Phone size={16} /> {company.phones[0]}
+          </a>
+        )}
         <button className="theme-toggle" onClick={toggleTheme} aria-label="تغییر حالت روشن و تیره" title="تغییر حالت روشن و تیره">
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>

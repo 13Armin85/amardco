@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   CheckCircle2,
@@ -6,29 +7,83 @@ import {
   ImagePlus,
   Layers3,
 } from "lucide-react";
-import { products } from "../data/products";
+import { getProduct, getProducts } from "../lib/api";
 import ProductCard from "../components/ProductCard";
 import CTA from "../components/CTA";
 import { useSEO } from "../hooks/useSEO";
+import type { Product } from "../types";
 
 export default function ProductDetail() {
   const { slug } = useParams();
-  const product = products.find((item) => item.slug === slug);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useSEO(
     product ? `${product.title} | آمارد` : "محصول | آمارد",
     product?.shortDescription || "جزئیات محصول آمارد",
   );
 
-  if (!product) {
-    return <div className="container page-space">محصول یافت نشد.</div>;
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadProduct() {
+      if (!slug) {
+        setProduct(null);
+        setError("محصول یافت نشد.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError("");
+        const [selectedProduct, productList] = await Promise.all([
+          getProduct(slug),
+          getProducts(),
+        ]);
+
+        if (!ignore) {
+          setProduct(selectedProduct);
+          setProducts(productList);
+        }
+      } catch {
+        if (!ignore) {
+          setProduct(null);
+          setError("محصول از سرور دریافت نشد.");
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadProduct();
+
+    return () => {
+      ignore = true;
+    };
+  }, [slug]);
+
+  const related = useMemo(() => {
+    if (!product) return [];
+
+    return products
+      .filter(
+        (item) => item.category === product.category && item.id !== product.id,
+      )
+      .slice(0, 3);
+  }, [product, products]);
+
+  if (loading) {
+    return <div className="container page-space">در حال دریافت از سرور...</div>;
   }
 
-  const related = products
-    .filter(
-      (item) => item.category === product.category && item.id !== product.id,
-    )
-    .slice(0, 3);
+  if (!product) {
+    return <div className="container page-space">{error || "محصول یافت نشد."}</div>;
+  }
 
   return (
     <>

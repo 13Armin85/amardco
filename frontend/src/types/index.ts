@@ -14,6 +14,18 @@ export interface Product {
   imageHint?: string
 }
 
+export interface Company {
+  name: string
+  shortName: string
+  website: string
+  tagline: string
+  description: string
+  phones: string[]
+  email: string
+  address: string
+  areas: string[]
+}
+
 export type ContentKind = 'update' | 'news' | 'article'
 
 export interface ContentItem {
@@ -26,6 +38,10 @@ export interface ContentItem {
   imageAlt: string
   publishedAt: string
   body: string[]
+  seoTitle?: string
+  seoDescription?: string
+  keywords?: string[]
+  sourcePdf?: string
 }
 
 export interface CertificateImage {
