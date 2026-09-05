@@ -15,6 +15,7 @@ const links = [
 
 export default function Header() {
   const [open, setOpen] = useState(false)
+  const [desktopProductsOpen, setDesktopProductsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
   const [productGroups, setProductGroups] = useState<ProductCategory[]>([])
@@ -100,21 +101,43 @@ export default function Header() {
         <nav className="desktop-nav" aria-label="منوی اصلی">
           <NavLink to="/" className={({ isActive }) => isActive ? 'active' : ''}>خانه</NavLink>
           <NavLink to="/about" className={({ isActive }) => isActive ? 'active' : ''}>درباره ما</NavLink>
-          <div className="nav-dropdown">
-            <NavLink to="/products" className={({ isActive }) => isActive ? 'active nav-trigger' : 'nav-trigger'}>
+          <div
+            className={`nav-dropdown${desktopProductsOpen ? ' open' : ''}`}
+            onMouseEnter={() => setDesktopProductsOpen(true)}
+            onMouseLeave={() => setDesktopProductsOpen(false)}
+            onFocus={() => setDesktopProductsOpen(true)}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                setDesktopProductsOpen(false)
+              }
+            }}
+          >
+            <NavLink
+              to="/products"
+              className={({ isActive }) => isActive ? 'active nav-trigger' : 'nav-trigger'}
+              onClick={() => setDesktopProductsOpen(false)}
+            >
               محصولات <ChevronDown size={15} />
             </NavLink>
             <div className="mega-menu" role="menu">
               <div className="mega-groups">
                 {groupedProducts.map(({ group, items }) => (
                   <div className="mega-group" key={group}>
-                    <Link to={`/products?category=${encodeURIComponent(group)}`} className="mega-group-title">
+                    <Link
+                      to={`/products?category=${encodeURIComponent(group)}`}
+                      className="mega-group-title"
+                      onClick={() => setDesktopProductsOpen(false)}
+                    >
                       <span>{group}</span>
                       <ChevronDown size={15} />
                     </Link>
                     <div className="mega-products">
                       {items.map(item => (
-                        <Link to={`/products/${item.slug}`} key={item.id}>
+                        <Link
+                          to={`/products/${item.slug}`}
+                          key={item.id}
+                          onClick={() => setDesktopProductsOpen(false)}
+                        >
                           <strong>{item.title}</strong>
                           <small>{item.shortDescription}</small>
                         </Link>
@@ -146,9 +169,6 @@ export default function Header() {
             <div className="mobile-menu-head">
               <Logo />
               <div>
-                <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label="تغییر حالت روشن و تیره">
-                  {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                </button>
                 <button type="button" onClick={() => setOpen(false)} aria-label="بستن منو"><X /></button>
               </div>
             </div>

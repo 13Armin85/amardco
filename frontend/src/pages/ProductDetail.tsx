@@ -11,6 +11,7 @@ import { getProduct, getProducts } from "../lib/api";
 import ProductCard from "../components/ProductCard";
 import CTA from "../components/CTA";
 import { useSEO } from "../hooks/useSEO";
+import { getProductImage } from "../lib/productImages";
 import type { Product } from "../types";
 
 export default function ProductDetail() {
@@ -85,6 +86,8 @@ export default function ProductDetail() {
     return <div className="container page-space">{error || "محصول یافت نشد."}</div>;
   }
 
+  const productImage = getProductImage(product.id);
+
   return (
     <>
       <section className="product-hero">
@@ -101,13 +104,19 @@ export default function ProductDetail() {
                 درخواست مشاوره
               </Link>
             </div>
-            <div className="product-image-slot">
-              <ImagePlus />
-              <strong>جای تصویر محصول</strong>
-              <span>
-                {product.imageHint ||
-                  "تصویر رابط کاربری یا نمای محصول را اینجا قرار دهید."}
-              </span>
+            <div className={`product-image-slot${productImage ? " has-image" : ""}`}>
+              {productImage ? (
+                <img src={productImage} alt={`نمای نرم‌افزار ${product.title}`} />
+              ) : (
+                <>
+                  <ImagePlus />
+                  <strong>جای تصویر محصول</strong>
+                  <span>
+                    {product.imageHint ||
+                      "تصویر رابط کاربری یا نمای محصول را اینجا قرار دهید."}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>

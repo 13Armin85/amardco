@@ -266,21 +266,10 @@ export default function Home() {
             className="smart-city-visual"
           >
             <img
-              src="/smart-city-hero.png"
+              src="/city-hero-smaller-no-border.png"
               alt="شهر هوشمند و سامانه‌های یکپارچه آمارد"
             />
-            <div className="hero-orbit-pill p1">
-              <Map /> GIS و نقشه‌ها
-            </div>
-            <div className="hero-orbit-pill p2">
-              <Building2 /> شهرسازی
-            </div>
-            <div className="hero-orbit-pill p3">
-              <Database /> مالی و اداری
-            </div>
-            <div className="hero-orbit-pill p4">
-              <FileText /> فرآیندها
-            </div>
+
           </motion.div>
         </div>
 
