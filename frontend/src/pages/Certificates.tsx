@@ -4,13 +4,22 @@ import { ArrowRight, Award, ChevronLeft, ChevronRight, ImageOff } from 'lucide-r
 import SectionTitle from '../components/SectionTitle'
 import { getCertificates } from '../lib/api'
 import { useSEO } from '../hooks/useSEO'
+import { absoluteUrl, breadcrumbSchema } from '../lib/seo'
 import type { CertificateImage } from '../types'
 
-const fallbackCertificates: CertificateImage[] = [1, 2, 3, 4, 5].map(page => ({
+const fallbackCertificates: CertificateImage[] = [
+  { page: 1, width: 1700, height: 2338 },
+  { page: 2, width: 1224, height: 1584 },
+  { page: 3, width: 1654, height: 2338 },
+  { page: 4, width: 1700, height: 1995 },
+  { page: 5, width: 880, height: 607 },
+].map(({ page, width, height }) => ({
   id: `certificate-${page}`,
   title: `گواهینامه و مدرک شماره ${page}`,
   image: `/page${page}.${page === 5 ? 'jpeg' : 'jpg'}`,
   imageAlt: `تصویر صفحه ${page} از گواهینامه‌ها و مدارک آمارد`,
+  width,
+  height,
 }))
 
 export default function Certificates() {
@@ -22,6 +31,22 @@ export default function Certificates() {
   useSEO(
     'گواهینامه‌ها و مدارک آمارد | تحلیلگران آمارد نوین',
     'مشاهده گواهینامه‌ها و مدارک شرکت تحلیلگران آمارد نوین در قالب اسلایدر تصویری.',
+    {
+      path: '/certificates',
+      schemas: [{
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'CollectionPage',
+            '@id': `${absoluteUrl('/certificates')}#webpage`,
+            url: absoluteUrl('/certificates'),
+            name: 'گواهینامه‌ها و مدارک آمارد',
+            inLanguage: 'fa-IR',
+          },
+          breadcrumbSchema([{ name: 'خانه', path: '/' }, { name: 'گواهینامه‌ها و مدارک', path: '/certificates' }]),
+        ],
+      }],
+    },
   )
 
   useEffect(() => {
@@ -63,6 +88,7 @@ export default function Certificates() {
       <section className="page-hero certificates-hero">
         <div className="container">
           <SectionTitle
+            as="h1"
             badge="گواهینامه‌ها و مدارک"
             title="اعتبارنامه‌های"
             highlight="آمارد"
@@ -79,7 +105,13 @@ export default function Certificates() {
             </button>
             <figure className="certificate-frame">
               {activeItem ? (
-                <img src={activeItem.image} alt={activeItem.imageAlt} />
+                <img
+                  src={activeItem.image}
+                  alt={activeItem.imageAlt}
+                  width={activeItem.width}
+                  height={activeItem.height}
+                  decoding="async"
+                />
               ) : (
                 <div className="certificate-empty">
                   <ImageOff />
@@ -105,7 +137,7 @@ export default function Certificates() {
                 onClick={() => setActiveIndex(index)}
                 aria-label={`نمایش ${item.title}`}
               >
-                <img src={item.image} alt="" />
+                <img src={item.image} alt="" width={item.width} height={item.height} loading="lazy" decoding="async" />
                 <span>{String(index + 1).padStart(2, '0')}</span>
               </button>
             ))}

@@ -3,6 +3,7 @@ import { Mail, MapPin, Navigation, Phone } from 'lucide-react'
 import SectionTitle from '../components/SectionTitle'
 import { getCompany } from '../lib/api'
 import { useSEO } from '../hooks/useSEO'
+import { absoluteUrl, breadcrumbSchema, publisherSchema } from '../lib/seo'
 import type { Company } from '../types'
 
 export default function Contact() {
@@ -13,6 +14,39 @@ export default function Contact() {
   useSEO(
     'تماس با آمارد | تلفن، ایمیل، آدرس و نقشه',
     'اطلاعات تماس شرکت تحلیلگران آمارد نوین شامل شماره تلفن، ایمیل، آدرس و موقعیت روی نقشه.',
+    {
+      path: '/contact',
+      schemas: company ? [{
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'ContactPage',
+            '@id': `${absoluteUrl('/contact')}#webpage`,
+            url: absoluteUrl('/contact'),
+            name: 'تماس با تحلیلگران آمارد نوین',
+            inLanguage: 'fa-IR',
+            about: { '@id': 'https://amardco.com/#organization' },
+          },
+          {
+            ...publisherSchema,
+            email: company.email,
+            telephone: company.phones,
+            address: {
+              '@type': 'PostalAddress',
+              streetAddress: company.address,
+              addressCountry: 'IR',
+            },
+            contactPoint: {
+              '@type': 'ContactPoint',
+              telephone: company.phones[0],
+              contactType: 'customer support',
+              availableLanguage: 'Persian',
+            },
+          },
+          breadcrumbSchema([{ name: 'خانه', path: '/' }, { name: 'تماس با ما', path: '/contact' }]),
+        ],
+      }] : [],
+    },
   )
 
   useEffect(() => {
@@ -70,6 +104,7 @@ export default function Contact() {
         <div className="container contact-hero-grid">
           <div>
             <SectionTitle
+              as="h1"
               badge="تماس با ما"
               title="مسیر ارتباط با"
               highlight="آمارد"
@@ -91,6 +126,8 @@ export default function Contact() {
               title="موقعیت شرکت تحلیلگران آمارد نوین روی نقشه"
               src={mapUrls.embed}
               loading="lazy"
+              width="600"
+              height="450"
               referrerPolicy="no-referrer-when-downgrade"
             />
             <a href={mapUrls.link} target="_blank" rel="noreferrer">

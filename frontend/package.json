@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/prerender.mjs && node scripts/validate-seo.mjs",
+    "validate:seo": "node scripts/validate-seo.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
-    "framer-motion": "latest",
     "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",

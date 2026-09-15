@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { ChevronDown, Menu, Moon, Phone, Sun, X } from 'lucide-react'
 import Logo from './Logo'
 import { getCompany, getProductGroups, getProducts } from '../lib/api'
@@ -13,17 +13,20 @@ const links = [
   ['/contact', 'تماس با ما'],
 ]
 
-export default function Header() {
+interface HeaderProps {
+  theme: 'dark' | 'light'
+  onToggleTheme: () => void
+}
+
+export default function Header({ theme, onToggleTheme }: HeaderProps) {
+  const location = useLocation()
+  const desktopProductsRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
   const [desktopProductsOpen, setDesktopProductsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
   const [productGroups, setProductGroups] = useState<ProductCategory[]>([])
   const [company, setCompany] = useState<Company | null>(null)
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    if (typeof window === 'undefined') return 'dark'
-    return localStorage.getItem('amard-theme') === 'light' ? 'light' : 'dark'
-  })
 
   const groupedProducts = useMemo(() => {
     return productGroups.map(group => ({
@@ -72,9 +75,12 @@ export default function Header() {
   }, [])
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme
-    localStorage.setItem('amard-theme', theme)
-  }, [theme])
+    setDesktopProductsOpen(false)
+    const focusedElement = document.activeElement
+    if (focusedElement instanceof HTMLElement && desktopProductsRef.current?.contains(focusedElement)) {
+      focusedElement.blur()
+    }
+  }, [location.pathname, location.search])
 
   useEffect(() => {
     if (!open) return
@@ -84,14 +90,17 @@ export default function Header() {
 
     document.body.style.overflow = 'hidden'
     document.documentElement.style.overflow = 'hidden'
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('keydown', closeOnEscape)
 
     return () => {
       document.body.style.overflow = previousBodyOverflow
       document.documentElement.style.overflow = previousHtmlOverflow
+      window.removeEventListener('keydown', closeOnEscape)
     }
   }, [open])
-
-  const toggleTheme = () => setTheme(current => current === 'dark' ? 'light' : 'dark')
 
   return (
     <header className={`site-header ${scrolled ? 'scrolled' : ''}`}>
@@ -102,6 +111,7 @@ export default function Header() {
           <NavLink to="/" className={({ isActive }) => isActive ? 'active' : ''}>خانه</NavLink>
           <NavLink to="/about" className={({ isActive }) => isActive ? 'active' : ''}>درباره ما</NavLink>
           <div
+            ref={desktopProductsRef}
             className={`nav-dropdown${desktopProductsOpen ? ' open' : ''}`}
             onMouseEnter={() => setDesktopProductsOpen(true)}
             onMouseLeave={() => setDesktopProductsOpen(false)}
@@ -115,7 +125,12 @@ export default function Header() {
             <NavLink
               to="/products"
               className={({ isActive }) => isActive ? 'active nav-trigger' : 'nav-trigger'}
-              onClick={() => setDesktopProductsOpen(false)}
+              onClick={(event) => {
+                event.currentTarget.blur()
+                setDesktopProductsOpen(false)
+              }}
+              aria-haspopup="true"
+              aria-expanded={desktopProductsOpen}
             >
               محصولات <ChevronDown size={15} />
             </NavLink>
@@ -126,7 +141,10 @@ export default function Header() {
                     <Link
                       to={`/products?category=${encodeURIComponent(group)}`}
                       className="mega-group-title"
-                      onClick={() => setDesktopProductsOpen(false)}
+                      onClick={(event) => {
+                        event.currentTarget.blur()
+                        setDesktopProductsOpen(false)
+                      }}
                     >
                       <span>{group}</span>
                       <ChevronDown size={15} />
@@ -136,7 +154,10 @@ export default function Header() {
                         <Link
                           to={`/products/${item.slug}`}
                           key={item.id}
-                          onClick={() => setDesktopProductsOpen(false)}
+                          onClick={(event) => {
+                            event.currentTarget.blur()
+                            setDesktopProductsOpen(false)
+                          }}
                         >
                           <strong>{item.title}</strong>
                           <small>{item.shortDescription}</small>
@@ -157,7 +178,7 @@ export default function Header() {
             <Phone size={16} /> {company.phones[0]}
           </a>
         )}
-        <button className="theme-toggle" onClick={toggleTheme} aria-label="تغییر حالت روشن و تیره" title="تغییر حالت روشن و تیره">
+        <button className="theme-toggle" type="button" onClick={onToggleTheme} aria-label="تغییر حالت روشن و تیره" title="تغییر حالت روشن و تیره">
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
         <button className="menu-btn" type="button" onClick={() => setOpen(true)} aria-label="باز کردن منو"><Menu /></button>
@@ -165,7 +186,7 @@ export default function Header() {
 
       {open && createPortal(
         <div className="mobile-menu-backdrop" onClick={() => setOpen(false)}>
-          <div className="mobile-menu open" onClick={(event) => event.stopPropagation()}>
+          <div className="mobile-menu open" role="dialog" aria-modal="true" aria-label="منوی موبایل" onClick={(event) => event.stopPropagation()}>
             <div className="mobile-menu-head">
               <Logo />
               <div>
@@ -176,10 +197,10 @@ export default function Header() {
               {links.map(([to, label]) => <NavLink onClick={() => setOpen(false)} key={to} to={to}>{label}</NavLink>)}
               <NavLink onClick={() => setOpen(false)} to="/products">همه محصولات</NavLink>
               {groupedProducts.map(({ group, items }) => (
-                <section className="mobile-products" key={group}>
+                <div className="mobile-products" key={group}>
                   <span>{group}</span>
                   {items.map(item => <NavLink onClick={() => setOpen(false)} key={item.id} to={`/products/${item.slug}`}>{item.title}</NavLink>)}
-                </section>
+                </div>
               ))}
             </nav>
           </div>

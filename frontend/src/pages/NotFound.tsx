@@ -1,6 +1,13 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { useSEO } from "../hooks/useSEO";
 export default function NotFound() {
+  useSEO(
+    "صفحه پیدا نشد | تحلیلگران آمارد نوین",
+    "این نشانی در وب‌سایت تحلیلگران آمارد نوین وجود ندارد.",
+    { noIndex: true },
+  );
+
   return (
     <section className="not-found">
       <div className="nf-orbit">

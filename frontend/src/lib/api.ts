@@ -4,14 +4,26 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (
   import.meta.env.DEV ? 'http://127.0.0.1:4173/api' : '/api'
 )
 
+const requestCache = new Map<string, Promise<unknown>>()
+
 async function request<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`)
+  const url = `${API_BASE_URL}${path}`
+  const cached = requestCache.get(url) as Promise<T> | undefined
+  if (cached) return cached
 
-  if (!response.ok) {
-    throw new Error(`API request failed: ${response.status}`)
-  }
+  const pending = fetch(url).then(async response => {
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`)
+    }
 
-  return response.json() as Promise<T>
+    return response.json() as Promise<T>
+  }).catch(error => {
+    requestCache.delete(url)
+    throw error
+  })
+
+  requestCache.set(url, pending)
+  return pending
 }
 
 export function getContentList(kind: ContentKind) {

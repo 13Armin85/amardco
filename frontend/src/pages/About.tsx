@@ -4,6 +4,7 @@ import SectionTitle from '../components/SectionTitle'
 import CTA from '../components/CTA'
 import { getCompany } from '../lib/api'
 import { useSEO } from '../hooks/useSEO'
+import { absoluteUrl, breadcrumbSchema, publisherSchema } from '../lib/seo'
 import type { Company } from '../types'
 
 const fallbackDescription = 'طراحی، تولید و پشتیبانی راهکارهای نرم‌افزاری تخصصی در حوزه شهرسازی، مالی و اداری.'
@@ -11,7 +12,39 @@ const fallbackDescription = 'طراحی، تولید و پشتیبانی راه�
 export default function About() {
   const [company, setCompany] = useState<Company | null>(null)
 
-  useSEO('درباره آمارد | تحلیلگران آمارد نوین', company?.description || fallbackDescription)
+  const description = company?.description || fallbackDescription
+  const seoDescription = 'با شرکت تحلیلگران آمارد نوین، حوزه‌های فعالیت و رویکرد آن در طراحی، استقرار و پشتیبانی نرم‌افزارهای شهرسازی، مالی و اداری آشنا شوید.'
+  const organization = company ? {
+    ...publisherSchema,
+    description: company.description,
+    email: company.email,
+    telephone: company.phones[0],
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: company.address,
+      addressCountry: 'IR',
+    },
+  } : publisherSchema
+
+  useSEO('درباره آمارد | تحلیلگران آمارد نوین', seoDescription, {
+    path: '/about',
+    schemas: [{
+      '@context': 'https://schema.org',
+      '@graph': [
+        organization,
+        {
+          '@type': 'AboutPage',
+          '@id': `${absoluteUrl('/about')}#webpage`,
+          url: absoluteUrl('/about'),
+          name: 'درباره تحلیلگران آمارد نوین',
+          description: seoDescription,
+          about: { '@id': 'https://amardco.com/#organization' },
+          inLanguage: 'fa-IR',
+        },
+        breadcrumbSchema([{ name: 'خانه', path: '/' }, { name: 'درباره ما', path: '/about' }]),
+      ],
+    }],
+  })
 
   useEffect(() => {
     let ignore = false
@@ -42,6 +75,7 @@ export default function About() {
       <section className="page-hero">
         <div className="container">
           <SectionTitle
+            as="h1"
             badge="درباره ما"
             title="تخصص نرم‌افزاری با تمرکز بر"
             highlight="مدیریت سازمانی"
@@ -57,7 +91,7 @@ export default function About() {
             <h2>راهکارهایی برای شهر، سازمان و فرایندهای واقعی</h2>
             <p>
               حوزه فعالیت عمومی شرکت بر طراحی، تولید و پشتیبانی نرم‌افزارهای شهرسازی، مالی و اداری متمرکز است.
-              در بازطراحی جدید، به‌جای استفاده از ادعاها یا آمار تأییدنشده، همین نقاط اتکای مستند به زبان بصری مدرن تبدیل شده‌اند.
+              راهکارهای آمارد با تمرکز بر شناخت فرایندهای واقعی سازمان، یکپارچگی اطلاعات و دسترسی منظم‌تر کاربران طراحی می‌شوند.
             </p>
           </div>
           <div className="story-cards">

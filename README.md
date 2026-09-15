@@ -47,7 +47,26 @@ Then open:
 http://127.0.0.1:4173
 ```
 
+The frontend build also prerenders every public route, generates `sitemap.xml`,
+`robots.txt`, and `404.html`, and runs an automated SEO validation. The
+production server returns real 404 responses, canonical 301 redirects,
+compressed text responses, cache headers, and security headers.
+
+To rerun only the SEO checks after a build:
+
+```bash
+cd frontend
+npm run validate:seo
+```
+
 ## Structure
+
+For deployment, the HTTP/HTTPS fix, SSL checks, and Search Console setup, see
+[the Persian deployment guide](deploy/SEARCH-CONSOLE.fa.md). An IIS/ARR example
+is included in `deploy/iis/web.config.example`. Proxy deployments must overwrite
+forwarded headers and set `TRUST_PROXY=1` in the Node service environment.
+
+Run production HTTP/SEO integration checks after building with `npm test` in `backend`.
 
 - `frontend/src` - frontend pages, components, styles, and API client
 - `backend` - Node.js server, content data, API routes, and SPA fallback routing

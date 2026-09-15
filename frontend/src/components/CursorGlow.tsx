@@ -1,9 +1,22 @@
 import { useEffect } from 'react'
 export default function CursorGlow() {
   useEffect(() => {
-    const move = (e: MouseEvent) => { document.documentElement.style.setProperty('--mx', `${e.clientX}px`); document.documentElement.style.setProperty('--my', `${e.clientY}px`) }
+    if (window.matchMedia('(pointer: coarse), (prefers-reduced-motion: reduce)').matches) return
+
+    let frame = 0
+    const move = (event: MouseEvent) => {
+      if (frame) return
+      frame = window.requestAnimationFrame(() => {
+        document.documentElement.style.setProperty('--mx', `${event.clientX}px`)
+        document.documentElement.style.setProperty('--my', `${event.clientY}px`)
+        frame = 0
+      })
+    }
     window.addEventListener('mousemove', move)
-    return () => window.removeEventListener('mousemove', move)
+    return () => {
+      window.removeEventListener('mousemove', move)
+      if (frame) window.cancelAnimationFrame(frame)
+    }
   }, [])
   return <div className="cursor-glow" aria-hidden="true" />
 }

@@ -12,6 +12,8 @@ import ProductCard from "../components/ProductCard";
 import CTA from "../components/CTA";
 import { useSEO } from "../hooks/useSEO";
 import { getProductImage } from "../lib/productImages";
+import { getImageMetadata } from "../lib/imageMetadata";
+import { absoluteUrl, breadcrumbSchema, publisherSchema } from "../lib/seo";
 import type { Product } from "../types";
 
 export default function ProductDetail() {
@@ -24,6 +26,37 @@ export default function ProductDetail() {
   useSEO(
     product ? `${product.title} | آمارد` : "محصول | آمارد",
     product?.shortDescription || "جزئیات محصول آمارد",
+    {
+      path: `/products/${slug || ""}`,
+      image: product ? getProductImage(product.id) : undefined,
+      imageAlt: product ? `نمای محصول ${product.title}` : undefined,
+      noIndex: !loading && !product,
+      schemas: product ? [{
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Product",
+            "@id": `${absoluteUrl(`/products/${product.slug}`)}#product`,
+            url: absoluteUrl(`/products/${product.slug}`),
+            name: product.title,
+            description: product.description,
+            category: product.category,
+            image: getProductImage(product.id) ? absoluteUrl(getProductImage(product.id)) : undefined,
+            brand: publisherSchema,
+            additionalProperty: product.capabilities.map(capability => ({
+              "@type": "PropertyValue",
+              name: "قابلیت نرم‌افزار",
+              value: capability,
+            })),
+          },
+          breadcrumbSchema([
+            { name: "خانه", path: "/" },
+            { name: "محصولات", path: "/products" },
+            { name: product.title, path: `/products/${product.slug}` },
+          ]),
+        ],
+      }] : [],
+    },
   );
 
   useEffect(() => {
@@ -87,6 +120,7 @@ export default function ProductDetail() {
   }
 
   const productImage = getProductImage(product.id);
+  const productImageMetadata = productImage ? getImageMetadata(productImage) : undefined;
 
   return (
     <>
@@ -106,7 +140,14 @@ export default function ProductDetail() {
             </div>
             <div className={`product-image-slot${productImage ? " has-image" : ""}`}>
               {productImage ? (
-                <img src={productImage} alt={`نمای نرم‌افزار ${product.title}`} />
+                <img
+                  src={productImage}
+                  alt={`نمای محصول ${product.title}`}
+                  width={productImageMetadata?.width}
+                  height={productImageMetadata?.height}
+                  fetchPriority="high"
+                  decoding="async"
+                />
               ) : (
                 <>
                   <ImagePlus />
@@ -128,8 +169,8 @@ export default function ProductDetail() {
             <span className="eyebrow">ویژگی‌ها</span>
             <h2>قابلیت‌های کلیدی</h2>
             <p className="detail-intro">
-              این بخش بر اساس متن فایل Word محصول تکمیل شده و برای معرفی کامل
-              محصول در صفحه اختصاصی آماده است.
+              مهم‌ترین امکانات این راهکار برای مکانیزه‌سازی فرایندها، افزایش
+              دقت و دسترسی سریع‌تر به اطلاعات سازمانی.
             </p>
           </div>
           <div className="detail-bento">
@@ -138,16 +179,32 @@ export default function ProductDetail() {
                 <CircleDot />
                 <span>{String(index + 1).padStart(2, "0")}</span>
                 <h3>{feature}</h3>
-                <p>
-                  این قابلیت در ساختار یکپارچه محصول برای کاهش دوباره‌کاری،
-                  افزایش شفافیت اطلاعات و تسریع دسترسی کاربران سازمانی در نظر
-                  گرفته شده است.
-                </p>
               </article>
             ))}
           </div>
         </div>
       </section>
+
+      {product.contentSections && product.contentSections.length > 0 && (
+        <section className="section-pad compact-top product-content-section">
+          <div className="container product-content">
+            <div className="product-content-heading">
+              <span className="eyebrow">معرفی جامع محصول</span>
+              <h2>راهکاری تخصصی برای مدیریت یکپارچه سازمان</h2>
+            </div>
+            <div className="product-content-body">
+              {product.contentSections.map((section) => (
+                <article key={section.title}>
+                  <h2>{section.title}</h2>
+                  {section.paragraphs.map((paragraph) => (
+                    <p key={paragraph}>{paragraph}</p>
+                  ))}
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="section-pad compact-top">
         <div className="container">

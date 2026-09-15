@@ -5,6 +5,7 @@ import ProductCard from "../components/ProductCard";
 import CTA from "../components/CTA";
 import { getProductGroups, getProducts } from "../lib/api";
 import { useSEO } from "../hooks/useSEO";
+import { absoluteUrl, breadcrumbSchema } from "../lib/seo";
 import type { Product, ProductCategory } from "../types";
 
 export default function Products() {
@@ -16,13 +17,39 @@ export default function Products() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const list = useMemo(
-    () => products.filter((product) => product.category === filter),
+    () => filter ? products.filter((product) => product.category === filter) : products,
     [filter, products],
   );
 
   useSEO(
     "محصولات آمارد | راهکارهای شهرسازی، مالی و اداری",
     "محصولات نرم‌افزاری تحلیلگران آمارد نوین در حوزه شهرسازی، مالی و اداری.",
+    {
+      path: "/products",
+      schemas: [{
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "CollectionPage",
+            "@id": `${absoluteUrl("/products")}#webpage`,
+            url: absoluteUrl("/products"),
+            name: "محصولات نرم‌افزاری آمارد",
+            description: "محصولات نرم‌افزاری تحلیلگران آمارد نوین در حوزه شهرسازی، مالی و اداری.",
+            inLanguage: "fa-IR",
+            mainEntity: {
+              "@type": "ItemList",
+              itemListElement: products.map((product, index) => ({
+                "@type": "ListItem",
+                position: index + 1,
+                name: product.title,
+                url: absoluteUrl(`/products/${product.slug}`),
+              })),
+            },
+          },
+          breadcrumbSchema([{ name: "خانه", path: "/" }, { name: "محصولات", path: "/products" }]),
+        ],
+      }],
+    },
   );
 
   useEffect(() => {
@@ -62,7 +89,7 @@ export default function Products() {
   useEffect(() => {
     if (!productGroups.length) return;
 
-    setFilter(requested && productGroups.includes(requested) ? requested : productGroups[0]);
+    setFilter(requested && productGroups.includes(requested) ? requested : "");
   }, [productGroups, requested]);
 
   return (
@@ -70,6 +97,7 @@ export default function Products() {
       <section className="page-hero products-page-hero">
         <div className="container">
           <SectionTitle
+            as="h1"
             badge="محصولات"
             title="اکوسیستم نرم‌افزاری"
             highlight="آمارد"
@@ -84,9 +112,21 @@ export default function Products() {
             role="tablist"
             aria-label="دسته‌بندی محصولات"
           >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={filter === ""}
+              className={filter === "" ? "active" : ""}
+              onClick={() => setFilter("")}
+            >
+              همه محصولات
+            </button>
             {productGroups.map((group) => (
               <button
                 key={group}
+                type="button"
+                role="tab"
+                aria-selected={filter === group}
                 className={filter === group ? "active" : ""}
                 onClick={() => setFilter(group)}
               >

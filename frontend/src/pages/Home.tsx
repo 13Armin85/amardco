@@ -23,11 +23,12 @@ import {
   ShieldCheck,
   Star,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import SectionTitle from "../components/SectionTitle";
 import CTA from "../components/CTA";
 import { getCompany, getContentList, getProducts } from "../lib/api";
 import { useSEO } from "../hooks/useSEO";
+import { getImageMetadata } from "../lib/imageMetadata";
+import { absoluteUrl, contentPath, publisherSchema } from "../lib/seo";
 import type { Company, ContentItem, Product, ProductCategory } from "../types";
 
 const urbanCategory: ProductCategory = "نرم‌افزار یکپارچه شهرسازی";
@@ -65,8 +66,8 @@ const faqs = [
     "بله، نرم‌افزار GIS آمارد می‌تواند اطلاعات مکانی را به پرونده‌ها و داده‌های توصیفی متصل کند.",
   ],
   [
-    "برای هر محصول صفحه اختصاصی داریم؟",
-    "بله، هر محصول صفحه جداگانه دارد و جای تصویر محصول نیز در همان صفحه آماده شده است.",
+    "محصولات آمارد چه حوزه‌هایی را پوشش می‌دهند؟",
+    "محصولات آمارد فرایندهای شهرسازی، مالی و اداری، GIS و خدمات الکترونیکی شهروندی را پوشش می‌دهند.",
   ],
   [
     "چطور می‌توان درخواست همکاری ثبت کرد؟",
@@ -80,7 +81,6 @@ interface ContentShowcaseProps {
   items: ContentItem[];
   loading: boolean;
   error: string;
-  routePrefix: string;
   badge: string;
   title: string;
   highlight: string;
@@ -94,7 +94,6 @@ function ContentShowcase({
   items,
   loading,
   error,
-  routePrefix,
   badge,
   title,
   highlight,
@@ -120,13 +119,20 @@ function ContentShowcase({
         {error && <div className="content-loading error">{error}</div>}
         {!loading && !error && featured && (
           <div className="showcase-layout">
-            <Link className="showcase-feature" to={`/${routePrefix}/${featured.slug}`}>
-              <img src={featured.image} alt={featured.imageAlt} />
+            <Link className="showcase-feature" to={contentPath(featured.kind, featured.slug)}>
+              <img
+                src={featured.image}
+                alt={featured.imageAlt}
+                width={getImageMetadata(featured.image)?.width}
+                height={getImageMetadata(featured.image)?.height}
+                loading="lazy"
+                decoding="async"
+              />
               <div>
                 <span className="chip">{chip}</span>
                 <h3>{featured.title}</h3>
                 <p>{featured.excerpt}</p>
-                <time>
+                <time dateTime={featured.publishedAtISO}>
                   <CalendarDays size={16} />
                   {featured.publishedAt}
                 </time>
@@ -135,12 +141,19 @@ function ContentShowcase({
 
             <div className="showcase-side-list">
               {sideItems.map((item, index) => (
-                <Link to={`/${routePrefix}/${item.slug}`} key={item.id}>
+                <Link to={contentPath(item.kind, item.slug)} key={item.id}>
                   <span>{String(index + 2).padStart(2, "0")}</span>
-                  <img src={item.image} alt={item.imageAlt} />
+                  <img
+                    src={item.image}
+                    alt={item.imageAlt}
+                    width={getImageMetadata(item.image)?.width}
+                    height={getImageMetadata(item.image)?.height}
+                    loading="lazy"
+                    decoding="async"
+                  />
                   <div>
                     <h3>{item.title}</h3>
-                    <time>{item.publishedAt}</time>
+                  <time dateTime={item.publishedAtISO}>{item.publishedAt}</time>
                   </div>
                   <ArrowUpLeft size={17} />
                 </Link>
@@ -153,7 +166,7 @@ function ContentShowcase({
   );
 }
 
-export default function Home() {
+export default function Home({ theme }: { theme: 'dark' | 'light' }) {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -165,9 +178,57 @@ export default function Home() {
   const [contentError, setContentError] = useState("");
   const seoDescription = company?.description || "طراحی، تولید و پشتیبانی راهکارهای نرم‌افزاری تخصصی در حوزه شهرسازی، مالی و اداری.";
 
+  const organizationSchema = company ? {
+    ...publisherSchema,
+    description: company.description,
+    email: company.email,
+    telephone: company.phones,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: company.address,
+      addressCountry: "IR",
+    },
+  } : publisherSchema;
+
   useSEO(
     "تحلیلگران آمارد نوین | تحول دیجیتال در مدیریت شهری",
     seoDescription,
+    {
+      path: "/",
+      image: "/city-hero-smaller-no-border.png",
+      imageAlt: "شهر هوشمند و سامانه‌های یکپارچه آمارد",
+      schemas: [{
+        "@context": "https://schema.org",
+        "@graph": [
+          organizationSchema,
+          {
+            "@type": "WebSite",
+            "@id": `${absoluteUrl("/")}#website`,
+            url: absoluteUrl("/"),
+            name: "تحلیلگران آمارد نوین",
+            inLanguage: "fa-IR",
+            publisher: { "@id": "https://amardco.com/#organization" },
+          },
+          {
+            "@type": "WebPage",
+            "@id": `${absoluteUrl("/")}#webpage`,
+            url: absoluteUrl("/"),
+            name: "تحلیلگران آمارد نوین | تحول دیجیتال در مدیریت شهری",
+            description: seoDescription,
+            inLanguage: "fa-IR",
+            isPartOf: { "@id": `${absoluteUrl("/")}#website` },
+          },
+          {
+            "@type": "FAQPage",
+            mainEntity: faqs.map(([question, answer]) => ({
+              "@type": "Question",
+              name: question,
+              acceptedAnswer: { "@type": "Answer", text: answer },
+            })),
+          },
+        ],
+      }],
+    },
   );
   const urbanProducts = products
     .filter((product) => product.category === urbanCategory)
@@ -234,12 +295,7 @@ export default function Home() {
     <>
       <section className="landing-hero">
         <div className="container landing-hero-grid">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="landing-hero-copy"
-          >
+          <div className="landing-hero-copy">
             <span className="eyebrow">
               <Star size={15} /> سیستم‌های یکپارچه مالی و شهرسازی
             </span>
@@ -257,20 +313,19 @@ export default function Home() {
                 ارتباط با آمارد
               </Link>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.08 }}
-            className="smart-city-visual"
-          >
+          <div className="smart-city-visual">
             <img
-              src="/city-hero-smaller-no-border.png"
+              src={theme === "dark" ? "/city-dark.png" : "/city-hero-smaller-no-border.png"}
               alt="شهر هوشمند و سامانه‌های یکپارچه آمارد"
+              width={theme === "dark" ? 1672 : 836}
+              height={theme === "dark" ? 941 : 470}
+              fetchPriority="high"
+              decoding="async"
             />
 
-          </motion.div>
+          </div>
         </div>
 
         <div className="container hero-service-strip">
@@ -321,7 +376,6 @@ export default function Home() {
         items={latestItems}
         loading={contentLoading}
         error={contentError}
-        routePrefix="updates"
         badge="تازه‌های آمارِد"
         title="آخرین‌های"
         highlight="آمارِد"
@@ -422,7 +476,6 @@ export default function Home() {
         items={newsItems}
         loading={contentLoading}
         error={contentError}
-        routePrefix="news"
         badge="اخبار"
         title="آخرین خبرهای"
         highlight="سایت"
@@ -447,12 +500,19 @@ export default function Home() {
                 <ChevronRight />
               </button>
               <Link className="article-slide" to={`/articles/${activeArticle.slug}`}>
-                <img src={activeArticle.image} alt={activeArticle.imageAlt} />
+                <img
+                  src={activeArticle.image}
+                  alt={activeArticle.imageAlt}
+                  width={getImageMetadata(activeArticle.image)?.width}
+                  height={getImageMetadata(activeArticle.image)?.height}
+                  loading="lazy"
+                  decoding="async"
+                />
                 <div>
                   <span className="chip">مقاله منتخب</span>
                   <h3>{activeArticle.title}</h3>
                   <p>{activeArticle.excerpt}</p>
-                  <time>
+                  <time dateTime={activeArticle.publishedAtISO}>
                     <CalendarDays size={16} />
                     {activeArticle.publishedAt}
                   </time>
@@ -475,7 +535,14 @@ export default function Home() {
                     onClick={() => setActiveArticleIndex(index)}
                     aria-label={`نمایش مقاله ${index + 1}`}
                   >
-                    <img src={item.image} alt="" />
+                    <img
+                      src={item.image}
+                      alt=""
+                      width={getImageMetadata(item.image)?.width}
+                      height={getImageMetadata(item.image)?.height}
+                      loading="lazy"
+                      decoding="async"
+                    />
                     <span>{item.title}</span>
                   </button>
                 ))}

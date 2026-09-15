@@ -12,6 +12,10 @@ export interface Product {
   icon: string
   featured?: boolean
   imageHint?: string
+  contentSections?: {
+    title: string
+    paragraphs: string[]
+  }[]
 }
 
 export interface Company {
@@ -37,6 +41,7 @@ export interface ContentItem {
   image: string
   imageAlt: string
   publishedAt: string
+  publishedAtISO?: string
   body: string[]
   seoTitle?: string
   seoDescription?: string
@@ -49,4 +54,6 @@ export interface CertificateImage {
   title: string
   image: string
   imageAlt: string
+  width: number
+  height: number
 }
