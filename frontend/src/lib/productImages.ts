@@ -17,6 +17,7 @@ const productImages: Partial<Record<string, string>> = {
   "fixed-assets": "/daraeiha.jpg",
   warehouse: "/smart-city-hero.png",
   taxpayers: "/smart-city-hero.png",
+  "machinery-maintenance": "/product-machinery-maintenance.jpeg",
   citizenyar: "/product-citizenyar.jpg",
 };
 

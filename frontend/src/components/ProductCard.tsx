@@ -18,6 +18,7 @@ import {
   UsersRound,
   WalletCards,
   Warehouse,
+  Wrench,
 } from 'lucide-react'
 import type { Product } from '../types'
 
@@ -39,6 +40,7 @@ const icons = {
   UsersRound,
   WalletCards,
   Warehouse,
+  Wrench,
 }
 
 export default function ProductCard({ product }: { product: Product }) {

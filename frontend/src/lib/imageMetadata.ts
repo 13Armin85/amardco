@@ -24,6 +24,7 @@ const imageMetadata: Record<string, { width: number; height: number }> = {
   "/product-treasury.png": { width: 1340, height: 593 },
   "/hoghoghi.jpg": { width: 1500, height: 843 },
   "/daraeiha.jpg": { width: 1500, height: 843 },
+  "/product-machinery-maintenance.jpeg": { width: 1352, height: 638 },
   "/product-citizenyar.jpg": { width: 1670, height: 872 },
 };
 
